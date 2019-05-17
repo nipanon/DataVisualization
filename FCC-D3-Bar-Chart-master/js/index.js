@@ -96,7 +96,7 @@ d3.json(url, function (data) {
   });
 
   //figure out how to alternate the colors?
-  // .style('fill', '#33adff')
+  
   //shift bars over to align with y-axis
   bars.attr('transform', 'translate(60, 0)');
 

@@ -1,0 +1,130 @@
+const dataSet = ' https://cdn.rawgit.com/freeCodeCamp/testable-projects-fcc/a80ce8f9/src/data/tree_map/video-game-sales-data.json';
+const width = 1150,
+height = 650,
+margin = { top: 40, right: 150, bottom: 20, left: 10 },
+colors = d3.scaleOrdinal(d3.schemeCategory20),
+legWidth = 25,
+legHeight = 12,
+legX = 1000,
+legY = 40;
+
+//create tooltip for popup infor
+const tooltip = d3.select("main").
+append('div').
+attr("id", "tooltip").
+style('position', 'absolute').
+style("opacity", 0);
+
+//create svg container for treemap
+const svg = d3.select("#chart").
+append('svg').
+attr('width', width).
+attr('height', height);
+
+//create treemap variable
+const treeMap = d3.treemap().
+size([width, height]).
+paddingInner(1);
+//function to retrieve JSON data for d3 visualization
+d3.json(dataSet, function (error, data) {
+  if (error) throw error;
+  //pass data to d3.hierarchy to create root node to store hierarchical data for treemap
+  const root = d3.hierarchy(data).
+  sum(d => d.value).
+  sort((a, b) => b.value - a.value);
+  //pass root node to 
+  treeMap(root);
+
+  //create 'g' cells for each "leaf" in the root node
+  const cell = svg.selectAll('g').
+  data(root.leaves()).
+  enter().
+  append('g');
+
+  //create tiles for the cells
+  const tiles = cell.append('rect').
+  attr('class', 'tile').
+  attr('width', d => d.x1 - d.x0).
+  attr('height', d => d.y1 - d.y0).
+  attr('data-name', d => d.data.name).
+  attr('data-category', d => d.data.category).
+  attr('data-value', d => d.value).
+  attr('x', d => d.x0).
+  attr('y', d => d.y0).
+  attr("fill", d => colors(d.data.category)).
+  on("mouseover", function (d) {
+    tooltip.style('opacity', 1);
+    tooltip.html("Name: " + d.data.name +
+    "<br>Category: " + d.data.category).
+    attr("data-value", d.data.value).
+    style("left", d3.event.pageX + 10 + "px").
+    style("top", d3.event.pageY - 28 + "px");
+  }).
+  on("mouseout", function (d) {
+    tooltip.style("opacity", 0);
+  });
+
+
+
+  // append text element to group
+  const text = cell.append('text').
+  attr('y', d => d.y0 + 1).
+  attr('xAttr', d => d.x0);
+
+  // split name into array and represent each with a tspan element
+  const label = text.selectAll('text').
+  data(d => d.data.name.split(/(?=[A-Z][^A-Z])/g)).
+  enter().
+  append('tspan').
+  attr("class", "labels").
+  attr('x', function (d) {return d3.select(this.parentNode).attr('xAttr');}).
+  attr('dy', 9).
+  attr('dx', 3).
+  text(d => d);
+
+  //get all categories
+  var categories = root.leaves().map(function (nodes) {
+    return nodes.data.category;
+  });
+  categories = categories.filter(function (category, index, self) {
+    return self.indexOf(category) === index;
+  });
+  console.log(categories);
+
+  //legend layout copied mercilessly from https://codepen.io/emmajzr/pen/QxBWGr
+
+  var legend = d3.select("#chart").append("div").
+  attr("class", "legend").
+  style("width", 500 + "px").
+  append("svg").
+  attr("width", 500).
+  attr("id", "legend");
+
+  const LEGEND_OFFSET = 10;
+  const LEGEND_RECT_SIZE = 15;
+  const LEGEND_H_SPACING = 150;
+  const LEGEND_V_SPACING = 10;
+  const LEGEND_TEXT_X_INDENT = 3;
+  var elementPerRow = Math.floor(500 / LEGEND_H_SPACING);
+  var paddingLeft = Math.floor((500 - LEGEND_H_SPACING * (elementPerRow - 1) - 60) / 2);
+
+  var legendElem = legend.selectAll("g").
+  data(categories).
+  enter().append("g").
+  attr("transform", function (d, i) {
+    return "translate(" + (i % elementPerRow * LEGEND_H_SPACING + paddingLeft) + ", " + Math.floor(i / elementPerRow) * (LEGEND_RECT_SIZE + LEGEND_V_SPACING) + ")";
+  });
+
+  legendElem.append("rect").
+  attr("width", LEGEND_RECT_SIZE).
+  attr("height", LEGEND_RECT_SIZE).
+  attr("class", "legend-item").
+  attr("fill", d => colors(d));
+
+  legendElem.append("text").
+  attr("x", LEGEND_RECT_SIZE + LEGEND_TEXT_X_INDENT).
+  attr("y", LEGEND_RECT_SIZE).
+  text(d => d).
+  attr("dy", -2);
+
+});
